@@ -57,9 +57,9 @@ enum DeepSeekError: Error, Equatable {
 // MARK: - DeepSeek API 服务
 
 class DeepSeekService: ObservableObject {
-    private var apiKey: String = "YOUR_API_KEY" // 请替换为实际的 API 密钥
-    private let baseURL = "https://openrouter.ai/api/v1/chat/completions"
-    
+    @AppStorage("apiKey") private var apiKey: String = "YOUR_API_KEY" // 请替换为实际的 API 密钥
+    @AppStorage("baseURl") private var baseURL = "https://openrouter.ai/api/v1/chat/completions"
+    @AppStorage("model") private var model_name: String = "deepseek/deepseek-r1:free"
     @Published var isLoading = false
     @Published var error: String?
     
@@ -73,7 +73,7 @@ class DeepSeekService: ObservableObject {
         )}
         
         let request = DeepSeekRequest(
-            model: "deepseek/deepseek-r1:free", // 或根据需要选择具体的模型
+            model: model_name, // 或根据需要选择具体的模型
             messages: deepseekMessages,
             stream: false,
             temperature: 0.7,
@@ -213,6 +213,7 @@ struct ContentView: View {
     @StateObject private var viewModel = ChatViewModel()
     @State private var showingLanguageSelector = false
     @State private var showingSidebar = false
+    @State private var showingSettings = false
     
     var body: some View {
         VStack(spacing: 0) {  
@@ -230,6 +231,15 @@ struct ContentView: View {
                     .font(.system(size: 22, weight: .bold))
                 
                 Spacer()
+
+                Button(action: {
+                    showingSettings.toggle()
+                }) {
+                    Image(systemName: "gear")
+                        .font(.system(size: 22))
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 10)
                 
                 Button(action: {
                     // 新建聊天
@@ -361,6 +371,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingSidebar) {
             SideMenuView(showingSidebar: $showingSidebar)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
         }
     }
 }
@@ -548,6 +561,48 @@ struct SideMenuView: View {
         .padding()
         .frame(width: 260)
         .background(Color(UIColor.systemBackground))
+    }
+}
+
+// MARK: - Settings View
+
+struct SettingsView: View {
+    @AppStorage("apiKey") private var apiKey: String = "YOUR_API_KEY"
+    @AppStorage("baseURL") private var baseURL: String = "https://openrouter.ai/api/v1/chat/completions"
+    @AppStorage("model") private var model_name: String = "deepseek/deepseek-r1:free"
+    @Environment(\.presentationMode) var presentationMode
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("API Configuration")) {
+                    TextField("Base URL", text: $baseURL)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                    
+                    SecureField("API Key", text: $apiKey)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+
+                    TextField("Model", text: $model_name)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                }
+                
+                Section(footer: Text("These settings are required to connect to the DeepSeek API.")) {
+                    Button("Reset to Default") {
+                        baseURL = "https://openrouter.ai/api/v1/chat/completions"
+                        apiKey = "YOUR_API_KEY"
+                        model_name = "deepseek/deepseek-r1:free"
+                    }
+                    .foregroundColor(.red)
+                }
+            }
+            .navigationTitle("Settings")
+            .navigationBarItems(trailing: Button("Done") {
+                presentationMode.wrappedValue.dismiss()
+            })
+        }
     }
 }
 
